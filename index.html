@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Quản lý Chi tiêu</title>
+  <meta name="theme-color" content="#f4a0b9">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Chi tiêu">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='30' fill='%232563eb'/><text x='90' y='125' font-size='110' text-anchor='middle' fill='white'>💰</text></svg>">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header id="header">
+    <div class="header-top">
+      <h1>Chi tiêu</h1>
+      <button id="btn-settings" aria-label="Cài đặt">⚙️</button>
+    </div>
+    <div class="header-month">
+      <button id="btn-prev-month" aria-label="Tháng trước">◀</button>
+      <input type="month" id="month-selector">
+      <button id="btn-next-month" aria-label="Tháng sau">▶</button>
+    </div>
+    <div class="header-summary">
+      <div class="summary-item">
+        <span class="summary-label">Đã chi</span>
+        <span class="summary-value" id="total-spent">0 đ</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Ngân sách</span>
+        <span class="summary-value" id="total-budget">-- đ</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Còn lại</span>
+        <span class="summary-value" id="total-remaining">-- đ</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main id="main">
+    <!-- Budget Section -->
+    <section id="budget-section">
+      <div class="section-header">
+        <h2>Ngân sách</h2>
+        <button id="btn-add-budget">+ Thêm</button>
+      </div>
+      <div id="budget-list"></div>
+    </section>
+
+    <!-- Expense Section -->
+    <section id="expense-section">
+      <h2 style="margin-bottom: 12px;">Chi tiêu</h2>
+      <div id="expense-list"></div>
+      <div id="expense-empty" class="empty-state" style="display:none;">
+        Chưa có chi tiêu nào trong tháng này
+      </div>
+    </section>
+  </main>
+
+  <!-- FAB -->
+  <button id="fab" aria-label="Thêm chi tiêu">+</button>
+
+  <!-- Expense Modal -->
+  <div id="modal-expense" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-expense-title">Thêm chi tiêu</h3>
+        <button class="modal-close" data-close="modal-expense">✕</button>
+      </div>
+      <!-- Detail view (read-only) -->
+      <div id="expense-detail" style="display:none;">
+        <div class="detail-row">
+          <span class="detail-label">Tiêu đề</span>
+          <span class="detail-value" id="detail-title"></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Số tiền</span>
+          <span class="detail-value detail-amount" id="detail-amount"></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Danh mục</span>
+          <span class="detail-value" id="detail-category"></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Ngày</span>
+          <span class="detail-value" id="detail-date"></span>
+        </div>
+        <div id="detail-images" class="detail-images"></div>
+        <div class="form-actions">
+          <button type="button" id="btn-edit-expense" class="btn-primary">✏️ Chỉnh sửa</button>
+        </div>
+      </div>
+
+      <!-- Edit form -->
+      <form id="form-expense" style="display:none;">
+        <input type="hidden" id="expense-id">
+
+        <label for="expense-title">Tiêu đề</label>
+        <input type="text" id="expense-title" required placeholder="VD: Cà phê sáng">
+
+        <label for="expense-amount">Số tiền (đ)</label>
+        <input type="text" id="expense-amount" required placeholder="50,000" inputmode="numeric" class="money-input">
+
+        <label for="expense-category">Danh mục</label>
+        <select id="expense-category" required>
+          <option value="food">🍜 Ăn uống</option>
+          <option value="other">📦 Khác</option>
+        </select>
+
+        <label for="expense-date">Ngày</label>
+        <input type="date" id="expense-date" required>
+
+        <!-- Budget info -->
+        <div id="expense-budget-info" class="budget-info" style="display:none;"></div>
+
+        <label>Ảnh (tối đa 5)</label>
+        <input type="file" id="expense-images" accept="image/*" multiple>
+        <div id="expense-image-preview" class="image-preview"></div>
+
+        <div class="form-actions">
+          <button type="button" id="btn-delete-expense" class="btn-danger" style="display:none;">Xóa</button>
+          <button type="submit" class="btn-primary">Lưu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Budget Modal -->
+  <div id="modal-budget" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-budget-title">Đặt ngân sách</h3>
+        <button class="modal-close" data-close="modal-budget">✕</button>
+      </div>
+      <form id="form-budget">
+        <label for="budget-category">Danh mục</label>
+        <select id="budget-category" required>
+          <option value="food">🍜 Ăn uống</option>
+          <option value="other">📦 Khác</option>
+        </select>
+
+        <label for="budget-amount">Số tiền (đ)</label>
+        <input type="text" id="budget-amount" required placeholder="1,000,000" inputmode="numeric" class="money-input">
+
+        <div class="form-actions">
+          <button type="button" id="btn-delete-budget" class="btn-danger" style="display:none;">Xóa</button>
+          <button type="submit" class="btn-primary">Lưu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="modal-settings" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Cài đặt</h3>
+        <button class="modal-close" data-close="modal-settings">✕</button>
+      </div>
+      <div class="settings-list">
+        <button id="btn-export" class="settings-btn">📤 Xuất dữ liệu (JSON)</button>
+        <button id="btn-import" class="settings-btn">📥 Nhập dữ liệu (JSON)</button>
+        <input type="file" id="import-file" accept=".json" style="display:none;">
+        <p class="settings-note">⚠️ Nhập dữ liệu sẽ thay thế toàn bộ dữ liệu hiện tại</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen image viewer -->
+  <div id="image-viewer" class="image-viewer" style="display:none;">
+    <button id="image-viewer-close" class="image-viewer-close">✕</button>
+    <img id="image-viewer-img" src="" alt="">
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
