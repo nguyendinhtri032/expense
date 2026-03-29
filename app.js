@@ -546,12 +546,22 @@ async function openExpenseModal(exp) {
 $formExpense.addEventListener('submit', async e => {
   e.preventDefault();
 
+  // Convert Blob images to base64 for reliable IndexedDB storage (especially offline)
+  const savedImages = [];
+  for (const img of currentImages) {
+    if (img instanceof Blob) {
+      savedImages.push(await blobToBase64(img));
+    } else {
+      savedImages.push(img); // already base64
+    }
+  }
+
   const data = {
     title: $expenseTitle.value.trim(),
     amount: parseMoneyInput($expenseAmount.value),
     category: $expenseCategory.value,
     date: $expenseDate.value,
-    images: currentImages
+    images: savedImages
   };
 
   const store = tx('expenses', 'readwrite');
@@ -637,12 +647,16 @@ document.getElementById('btn-export').addEventListener('click', async () => {
   const expenses = await idbReq(tx('expenses', 'readonly').getAll());
   const budgets = await idbReq(tx('budgets', 'readonly').getAll());
 
-  // Convert Blobs to base64
+  // Ensure all images are base64 for export (handle legacy Blob data)
   const expWithB64 = await Promise.all(expenses.map(async exp => {
     const imgs = [];
     if (exp.images) {
-      for (const blob of exp.images) {
-        imgs.push(await blobToBase64(blob));
+      for (const img of exp.images) {
+        if (img instanceof Blob) {
+          imgs.push(await blobToBase64(img));
+        } else {
+          imgs.push(img); // already base64
+        }
       }
     }
     return { ...exp, images: imgs };
@@ -709,19 +723,8 @@ document.getElementById('import-file').addEventListener('change', async e => {
       await idbReq(budStore.put(b));
     }
 
-    // Import expenses (convert base64 back to Blob)
+    // Import expenses (keep images as base64 strings)
     for (const exp of (data.expenses || [])) {
-      const imgs = [];
-      if (exp.images) {
-        for (const img of exp.images) {
-          if (typeof img === 'string') {
-            imgs.push(base64ToBlob(img));
-          } else {
-            imgs.push(img);
-          }
-        }
-      }
-      exp.images = imgs;
       await idbReq(expStore.put(exp));
     }
 
@@ -981,6 +984,54 @@ if ('serviceWorker' in navigator) {
       console.log('[App] Running version:', e.data.version);
     }
   });
+}
+
+// ============================================================
+// Pull to refresh (for PWA standalone mode)
+// ============================================================
+{
+  const ptrEl = document.getElementById('pull-to-refresh');
+  let startY = 0;
+  let pulling = false;
+  const THRESHOLD = 80;
+
+  document.addEventListener('touchstart', e => {
+    // Only trigger when scrolled to top
+    if (window.scrollY === 0 && !pulling) {
+      startY = e.touches[0].clientY;
+    } else {
+      startY = 0;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!startY) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 0 && window.scrollY === 0) {
+      const progress = Math.min(dy / THRESHOLD, 1);
+      ptrEl.style.top = (dy * 0.4 - 40) + 'px';
+      ptrEl.classList.add('active');
+      ptrEl.querySelector('.ptr-spinner').style.transform = 'rotate(' + (progress * 360) + 'deg)';
+    } else {
+      ptrEl.classList.remove('active');
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    if (!startY) return;
+    const wasActive = ptrEl.classList.contains('active');
+    const top = parseFloat(ptrEl.style.top || '-40');
+    if (wasActive && top > THRESHOLD * 0.4 - 40) {
+      pulling = true;
+      ptrEl.classList.add('refreshing');
+      ptrEl.style.top = '16px';
+      location.reload();
+    } else {
+      ptrEl.classList.remove('active');
+      ptrEl.style.top = '-40px';
+    }
+    startY = 0;
+  }, { passive: true });
 }
 
 // ============================================================
