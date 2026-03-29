@@ -64,7 +64,14 @@
 
     <!-- Expense Section -->
     <section id="expense-section">
-      <h2 style="margin-bottom: 12px;">Chi tiêu</h2>
+      <div class="section-header">
+        <h2>Chi tiêu</h2>
+        <div class="sort-controls">
+          <button class="sort-btn active" data-sort="id">Mới nhất</button>
+          <button class="sort-btn" data-sort="amount">Số tiền</button>
+          <button class="sort-btn" data-sort="date">Ngày</button>
+        </div>
+      </div>
       <div id="expense-list"></div>
       <div id="expense-empty" class="empty-state" style="display:none;">
         Chưa có chi tiêu nào trong tháng này
@@ -133,16 +140,7 @@
         </div>
 
         <div class="floating-field">
-          <select id="expense-category" required>
-            <option value="food">🍜 Ăn uống</option>
-            <option value="transport">🚗 Di chuyển</option>
-            <option value="shopping">🛍️ Mua sắm</option>
-            <option value="entertainment">🎮 Giải trí</option>
-            <option value="health">💊 Sức khỏe</option>
-            <option value="education">📚 Học tập</option>
-            <option value="bills">🧾 Hóa đơn</option>
-            <option value="other">📦 Khác</option>
-          </select>
+          <select id="expense-category" required></select>
           <label for="expense-category">Danh mục</label>
         </div>
 
@@ -177,18 +175,25 @@
       </div>
       <form id="form-budget">
         <div class="floating-field">
-          <select id="budget-category" required>
-            <option value="food">🍜 Ăn uống</option>
-            <option value="transport">🚗 Di chuyển</option>
-            <option value="shopping">🛍️ Mua sắm</option>
-            <option value="entertainment">🎮 Giải trí</option>
-            <option value="health">💊 Sức khỏe</option>
-            <option value="education">📚 Học tập</option>
-            <option value="bills">🧾 Hóa đơn</option>
-            <option value="other">📦 Khác</option>
-          </select>
+          <select id="budget-category" required></select>
           <label for="budget-category">Danh mục</label>
         </div>
+
+        <div id="new-category-section" style="display:none;">
+          <div class="floating-field">
+            <input type="text" id="new-cat-icon" placeholder=" " maxlength="2" style="width:60px;text-align:center;font-size:20px;display:inline-block;">
+            <label for="new-cat-icon">Icon</label>
+          </div>
+          <div class="floating-field">
+            <input type="text" id="new-cat-name" placeholder=" " maxlength="30">
+            <label for="new-cat-name">Tên danh mục</label>
+          </div>
+          <div class="form-actions" style="margin-top:12px;">
+            <button type="button" id="btn-save-category" class="btn-primary" style="font-size:14px;padding:10px;">Tạo danh mục</button>
+            <button type="button" id="btn-cancel-category" class="btn-danger" style="font-size:14px;padding:10px;">Hủy</button>
+          </div>
+        </div>
+        <button type="button" id="btn-new-category" class="btn-new-category">+ Tạo danh mục mới</button>
 
         <div class="floating-field">
           <input type="text" id="budget-amount" required placeholder=" " inputmode="numeric" class="money-input">

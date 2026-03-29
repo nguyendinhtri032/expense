@@ -2,8 +2,19 @@
 // DB
 // ============================================================
 const DB_NAME = 'expenseDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 let db;
+
+const DEFAULT_CATEGORIES = [
+  { id: 'food', icon: '🍜', name: 'Ăn uống' },
+  { id: 'transport', icon: '🚗', name: 'Di chuyển' },
+  { id: 'shopping', icon: '🛍️', name: 'Mua sắm' },
+  { id: 'entertainment', icon: '🎮', name: 'Giải trí' },
+  { id: 'health', icon: '💊', name: 'Sức khỏe' },
+  { id: 'education', icon: '📚', name: 'Học tập' },
+  { id: 'bills', icon: '🧾', name: 'Hóa đơn' },
+  { id: 'other', icon: '📦', name: 'Khác' }
+];
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -18,6 +29,11 @@ function openDB() {
         const s = d.createObjectStore('budgets', { keyPath: 'id' });
         s.createIndex('month', 'month', { unique: false });
         s.createIndex('category', 'category', { unique: false });
+      }
+      if (!d.objectStoreNames.contains('categories')) {
+        const s = d.createObjectStore('categories', { keyPath: 'id' });
+        // Seed default categories
+        DEFAULT_CATEGORIES.forEach(cat => s.put(cat));
       }
     };
     req.onsuccess = e => { db = e.target.result; resolve(db); };
@@ -37,23 +53,50 @@ function idbReq(req) {
 }
 
 // ============================================================
-// Categories
+// Categories (dynamic from IndexedDB)
 // ============================================================
-const CATEGORIES = {
-  food: '🍜 Ăn uống',
-  transport: '🚗 Di chuyển',
-  shopping: '🛍️ Mua sắm',
-  entertainment: '🎮 Giải trí',
-  health: '💊 Sức khỏe',
-  education: '📚 Học tập',
-  bills: '🧾 Hóa đơn',
-  other: '📦 Khác'
-};
+let CATEGORIES = {}; // { id: 'icon name' }
+let CAT_ICONS = {};  // { id: 'icon' }
+let categoriesList = []; // [{ id, icon, name }]
 
-const CAT_ICONS = {
-  food: '🍜', transport: '🚗', shopping: '🛍️', entertainment: '🎮',
-  health: '💊', education: '📚', bills: '🧾', other: '📦'
-};
+async function loadCategories() {
+  const all = await idbReq(tx('categories', 'readonly').getAll());
+  categoriesList = all;
+  CATEGORIES = {};
+  CAT_ICONS = {};
+  all.forEach(c => {
+    CATEGORIES[c.id] = `${c.icon} ${c.name}`;
+    CAT_ICONS[c.id] = c.icon;
+  });
+  populateCategorySelects();
+}
+
+function populateCategorySelects() {
+  [$expenseCategory, $budgetCategory].forEach($sel => {
+    if (!$sel) return;
+    const current = $sel.value;
+    $sel.innerHTML = '';
+    categoriesList.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = `${c.icon} ${c.name}`;
+      $sel.appendChild(opt);
+    });
+    if (current && [...$sel.options].some(o => o.value === current)) {
+      $sel.value = current;
+    }
+  });
+}
+
+async function addCategory(id, icon, name) {
+  await idbReq(tx('categories', 'readwrite').put({ id, icon, name }));
+  await loadCategories();
+}
+
+async function deleteCategory(id) {
+  await idbReq(tx('categories', 'readwrite').delete(id));
+  await loadCategories();
+}
 
 // ============================================================
 // Date helpers (Asia/Ho_Chi_Minh)
@@ -118,6 +161,8 @@ function setMoneyInputValue(input, num) {
 // State
 // ============================================================
 let selectedMonth = localStorage.getItem('selectedMonth') || toISO(vnNow()).substring(0, 7);
+let currentSort = 'id';   // 'id' | 'amount' | 'date'
+let sortAsc = false;       // default descending
 
 // ============================================================
 // DOM refs
@@ -228,11 +273,41 @@ document.getElementById('btn-next-month').addEventListener('click', () => {
 });
 
 // ============================================================
+// Sort controls
+// ============================================================
+document.querySelector('.sort-controls').addEventListener('click', e => {
+  const btn = e.target.closest('.sort-btn');
+  if (!btn) return;
+  const sort = btn.dataset.sort;
+
+  if (currentSort === sort) {
+    // Toggle direction
+    sortAsc = !sortAsc;
+  } else {
+    currentSort = sort;
+    sortAsc = false; // default desc for new sort
+  }
+
+  // Update active state and arrow
+  document.querySelectorAll('.sort-btn').forEach(b => {
+    b.classList.remove('active');
+    b.querySelector('.sort-arrow')?.remove();
+  });
+  btn.classList.add('active');
+  const arrow = document.createElement('span');
+  arrow.className = 'sort-arrow';
+  arrow.textContent = sortAsc ? ' ↑' : ' ↓';
+  btn.appendChild(arrow);
+
+  refresh();
+});
+
+// ============================================================
 // Data fetching
 // ============================================================
 async function getExpensesByMonth(month) {
   const all = await idbReq(tx('expenses', 'readonly').index('date').getAll());
-  return all.filter(e => getMonth(e.date) === month).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+  return all.filter(e => getMonth(e.date) === month);
 }
 
 async function getBudgetsByMonth(month) {
@@ -316,9 +391,25 @@ function renderBudgets(budgets, expenses) {
   });
 }
 
+function sortExpenses(expenses) {
+  const sorted = [...expenses];
+  const dir = sortAsc ? 1 : -1;
+  if (currentSort === 'amount') {
+    sorted.sort((a, b) => (a.amount - b.amount) * dir || b.id - a.id);
+  } else if (currentSort === 'date') {
+    sorted.sort((a, b) => a.date.localeCompare(b.date) * dir || b.id - a.id);
+  } else {
+    // id desc by default
+    sorted.sort((a, b) => (a.id - b.id) * dir);
+  }
+  return sorted;
+}
+
 function renderExpenses(expenses, budgets) {
   $expenseList.innerHTML = '';
   $expenseEmpty.style.display = expenses.length === 0 ? 'block' : 'none';
+
+  const sorted = sortExpenses(expenses);
 
   // Pre-calculate spent per category for percentage
   const spentByCategory = {};
@@ -326,7 +417,7 @@ function renderExpenses(expenses, budgets) {
     spentByCategory[e.category] = (spentByCategory[e.category] || 0) + e.amount;
   });
 
-  expenses.forEach(exp => {
+  sorted.forEach(exp => {
     const card = document.createElement('div');
     card.className = 'expense-card';
     const hasImages = exp.images && exp.images.length > 0;
@@ -622,6 +713,8 @@ document.getElementById('btn-add-budget').addEventListener('click', () => openBu
 
 function openBudgetModal(cat, budget) {
   $formBudget.reset();
+  document.getElementById('new-category-section').style.display = 'none';
+  document.getElementById('btn-new-category').style.display = 'block';
 
   if (budget) {
     $modalBudgetTitle.textContent = 'Sửa ngân sách';
@@ -667,6 +760,54 @@ $btnDeleteBudget.addEventListener('click', async () => {
 });
 
 // ============================================================
+// Category creation (in budget modal)
+// ============================================================
+const $newCatSection = document.getElementById('new-category-section');
+const $btnNewCategory = document.getElementById('btn-new-category');
+const $newCatIcon = document.getElementById('new-cat-icon');
+const $newCatName = document.getElementById('new-cat-name');
+const $btnSaveCategory = document.getElementById('btn-save-category');
+const $btnCancelCategory = document.getElementById('btn-cancel-category');
+
+$btnNewCategory.addEventListener('click', () => {
+  $newCatSection.style.display = 'block';
+  $btnNewCategory.style.display = 'none';
+  $newCatIcon.value = '';
+  $newCatName.value = '';
+  $newCatIcon.focus();
+});
+
+$btnCancelCategory.addEventListener('click', () => {
+  $newCatSection.style.display = 'none';
+  $btnNewCategory.style.display = 'block';
+});
+
+$btnSaveCategory.addEventListener('click', async () => {
+  const icon = $newCatIcon.value.trim();
+  const name = $newCatName.value.trim();
+  if (!icon || !name) {
+    toast('Vui lòng nhập icon và tên danh mục');
+    return;
+  }
+  // Generate id from name (slug)
+  const id = name.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+  if (CATEGORIES[id]) {
+    toast('Danh mục này đã tồn tại');
+    return;
+  }
+
+  await addCategory(id, icon, name);
+  $newCatSection.style.display = 'none';
+  $btnNewCategory.style.display = 'block';
+  $budgetCategory.value = id;
+  toast('Đã tạo danh mục mới');
+});
+
+// ============================================================
 // Settings
 // ============================================================
 document.getElementById('btn-settings').addEventListener('click', () => openModal($modalSettings));
@@ -691,7 +832,8 @@ document.getElementById('btn-export').addEventListener('click', async () => {
     return { ...exp, images: imgs };
   }));
 
-  const data = { expenses: expWithB64, budgets, exportDate: new Date().toISOString() };
+  const categories = await idbReq(tx('categories', 'readonly').getAll());
+  const data = { expenses: expWithB64, budgets, categories, exportDate: new Date().toISOString() };
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -740,12 +882,20 @@ document.getElementById('import-file').addEventListener('change', async e => {
     const data = JSON.parse(text);
 
     // Clear existing
-    const txn = db.transaction(['expenses', 'budgets'], 'readwrite');
+    const txn = db.transaction(['expenses', 'budgets', 'categories'], 'readwrite');
     const expStore = txn.objectStore('expenses');
     const budStore = txn.objectStore('budgets');
+    const catStore = txn.objectStore('categories');
 
     await idbReq(expStore.clear());
     await idbReq(budStore.clear());
+    await idbReq(catStore.clear());
+
+    // Import categories (fallback to defaults if not in export)
+    const cats = data.categories || DEFAULT_CATEGORIES;
+    for (const c of cats) {
+      await idbReq(catStore.put(c));
+    }
 
     // Import budgets
     for (const b of (data.budgets || [])) {
@@ -759,6 +909,7 @@ document.getElementById('import-file').addEventListener('change', async e => {
 
     toast('Đã nhập dữ liệu thành công');
     closeModal($modalSettings);
+    await loadCategories();
     refresh();
   } catch (err) {
     alert('Lỗi khi nhập dữ liệu: ' + err.message);
@@ -1025,4 +1176,4 @@ document.getElementById('btn-reload').addEventListener('click', () => location.r
 // ============================================================
 setupMoneyInput($expenseAmount);
 setupMoneyInput($budgetAmount);
-openDB().then(() => refresh());
+openDB().then(() => loadCategories()).then(() => refresh());

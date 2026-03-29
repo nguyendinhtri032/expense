@@ -287,6 +287,38 @@ h2 {
   font-weight: 600;
 }
 
+/* Sort controls */
+.sort-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.sort-btn {
+  background: var(--gray-100);
+  border: 1px solid var(--gray-200);
+  color: var(--gray-500);
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sort-btn.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #4a1a2e;
+}
+
+.sort-btn:active {
+  opacity: 0.8;
+}
+
+.sort-arrow {
+  font-size: 10px;
+}
+
 /* Budget section */
 #budget-section {
   margin-bottom: 24px;
@@ -573,6 +605,47 @@ h2 {
 
 .btn-danger:active {
   background: #fef2f2;
+}
+
+/* New category button */
+.btn-new-category {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  background: none;
+  border: 1px dashed var(--gray-300);
+  border-radius: 10px;
+  color: var(--gray-500);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btn-new-category:active {
+  background: var(--gray-50);
+  border-color: var(--blue);
+  color: var(--blue-dark);
+}
+
+#new-category-section {
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--gray-50);
+  border-radius: 10px;
+  border: 1px solid var(--gray-200);
+}
+
+#new-category-section .floating-field {
+  margin-top: 12px;
+}
+
+#new-category-section .floating-field:first-child {
+  margin-top: 0;
+}
+
+#new-category-section .floating-field label {
+  background: var(--gray-50);
 }
 
 /* Budget info in expense form */
