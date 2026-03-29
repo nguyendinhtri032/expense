@@ -1,4 +1,4 @@
-const APP_VERSION = 'v1.0.2';
+const APP_VERSION = 'v1.0.3';
 const CACHE_NAME = 'expense-' + APP_VERSION;
 const ASSETS = [
   './',
@@ -6,7 +6,10 @@ const ASSETS = [
   './style.css',
   './app.js',
   './manifest.json',
-  './logo.png'
+  './images/logo.png',
+  './images/rotate.png',
+  './images/setting-lines.png',
+  './images/image-gallery.png'
 ];
 
 // Install: cache core assets, activate immediately

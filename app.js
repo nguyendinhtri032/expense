@@ -41,11 +41,18 @@ function idbReq(req) {
 // ============================================================
 const CATEGORIES = {
   food: '🍜 Ăn uống',
+  transport: '🚗 Di chuyển',
+  shopping: '🛍️ Mua sắm',
+  entertainment: '🎮 Giải trí',
+  health: '💊 Sức khỏe',
+  education: '📚 Học tập',
+  bills: '🧾 Hóa đơn',
   other: '📦 Khác'
 };
 
 const CAT_ICONS = {
-  food: '🍜', other: '📦'
+  food: '🍜', transport: '🚗', shopping: '🛍️', entertainment: '🎮',
+  health: '💊', education: '📚', bills: '🧾', other: '📦'
 };
 
 // ============================================================
@@ -265,7 +272,7 @@ async function refresh() {
   renderBudgets(budgets, expenses);
 
   // Expense list
-  renderExpenses(expenses);
+  renderExpenses(expenses, budgets);
 
   // Re-render chart if visible
   if ($chartPage.style.display !== 'none') renderChart();
@@ -305,21 +312,39 @@ function renderBudgets(budgets, expenses) {
   });
 }
 
-function renderExpenses(expenses) {
+function renderExpenses(expenses, budgets) {
   $expenseList.innerHTML = '';
   $expenseEmpty.style.display = expenses.length === 0 ? 'block' : 'none';
+
+  // Pre-calculate spent per category for percentage
+  const spentByCategory = {};
+  expenses.forEach(e => {
+    spentByCategory[e.category] = (spentByCategory[e.category] || 0) + e.amount;
+  });
 
   expenses.forEach(exp => {
     const card = document.createElement('div');
     card.className = 'expense-card';
     const hasImages = exp.images && exp.images.length > 0;
+
+    // Calculate this expense's % of its category budget
+    const budget = budgets.find(b => b.category === exp.category);
+    let pctHtml = '';
+    if (budget && budget.amount > 0) {
+      const pct = Math.round((exp.amount / budget.amount) * 100);
+      pctHtml = `<div class="expense-card-pct">${pct}%</div>`;
+    }
+
     card.innerHTML = `
       <div class="expense-card-icon">${CAT_ICONS[exp.category] || '📦'}</div>
       <div class="expense-card-body">
         <div class="expense-card-title">${escapeHtml(exp.title)}</div>
-        <div class="expense-card-meta">${toVNDate(exp.date)}${hasImages ? ' · 📷' + exp.images.length : ''}</div>
+        <div class="expense-card-meta">${toVNDate(exp.date)}${hasImages ? ' · <img src="images/image-gallery.png" class="expense-card-img-icon" alt="">' + exp.images.length : ''}</div>
       </div>
-      <div class="expense-card-amount">-${formatMoney(exp.amount)}</div>
+      <div class="expense-card-right">
+        <div class="expense-card-amount">-${formatMoney(exp.amount)}</div>
+        ${pctHtml}
+      </div>
     `;
     card.addEventListener('click', () => openExpenseModal(exp));
     $expenseList.appendChild(card);
@@ -987,52 +1012,9 @@ if ('serviceWorker' in navigator) {
 }
 
 // ============================================================
-// Pull to refresh (for PWA standalone mode)
+// Reload button (for PWA standalone mode)
 // ============================================================
-{
-  const ptrEl = document.getElementById('pull-to-refresh');
-  let startY = 0;
-  let pulling = false;
-  const THRESHOLD = 80;
-
-  document.addEventListener('touchstart', e => {
-    // Only trigger when scrolled to top
-    if (window.scrollY === 0 && !pulling) {
-      startY = e.touches[0].clientY;
-    } else {
-      startY = 0;
-    }
-  }, { passive: true });
-
-  document.addEventListener('touchmove', e => {
-    if (!startY) return;
-    const dy = e.touches[0].clientY - startY;
-    if (dy > 0 && window.scrollY === 0) {
-      const progress = Math.min(dy / THRESHOLD, 1);
-      ptrEl.style.top = (dy * 0.4 - 40) + 'px';
-      ptrEl.classList.add('active');
-      ptrEl.querySelector('.ptr-spinner').style.transform = 'rotate(' + (progress * 360) + 'deg)';
-    } else {
-      ptrEl.classList.remove('active');
-    }
-  }, { passive: true });
-
-  document.addEventListener('touchend', () => {
-    if (!startY) return;
-    const wasActive = ptrEl.classList.contains('active');
-    const top = parseFloat(ptrEl.style.top || '-40');
-    if (wasActive && top > THRESHOLD * 0.4 - 40) {
-      pulling = true;
-      ptrEl.classList.add('refreshing');
-      ptrEl.style.top = '16px';
-      location.reload();
-    } else {
-      ptrEl.classList.remove('active');
-      ptrEl.style.top = '-40px';
-    }
-    startY = 0;
-  }, { passive: true });
-}
+document.getElementById('btn-reload').addEventListener('click', () => location.reload());
 
 // ============================================================
 // Init

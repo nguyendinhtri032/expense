@@ -8,23 +8,21 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Chi tiêu">
-  <link rel="apple-touch-icon" href="logo.png">
-  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="apple-touch-icon" href="images/logo.png">
+  <link rel="icon" type="image/png" href="images/logo.png">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Pull to refresh indicator -->
-  <div id="pull-to-refresh" class="ptr-container">
-    <div class="ptr-spinner">&#8635;</div>
-  </div>
-
   <!-- Header -->
   <header id="header">
     <div class="header-top">
       <h1>Chi tiêu</h1>
-      <button id="btn-settings" aria-label="Cài đặt">⚙️</button>
+      <div class="header-actions">
+        <button id="btn-reload" aria-label="Tải lại"><img src="images/rotate.png" alt="Reload" class="header-icon"></button>
+        <button id="btn-settings" aria-label="Cài đặt"><img src="images/setting-lines.png" alt="Settings" class="header-icon"></button>
+      </div>
     </div>
     <div class="header-month">
       <button id="btn-prev-month" aria-label="Tháng trước">◀</button>
@@ -133,6 +131,12 @@
         <label for="expense-category">Danh mục</label>
         <select id="expense-category" required>
           <option value="food">🍜 Ăn uống</option>
+          <option value="transport">🚗 Di chuyển</option>
+          <option value="shopping">🛍️ Mua sắm</option>
+          <option value="entertainment">🎮 Giải trí</option>
+          <option value="health">💊 Sức khỏe</option>
+          <option value="education">📚 Học tập</option>
+          <option value="bills">🧾 Hóa đơn</option>
           <option value="other">📦 Khác</option>
         </select>
 
@@ -165,6 +169,12 @@
         <label for="budget-category">Danh mục</label>
         <select id="budget-category" required>
           <option value="food">🍜 Ăn uống</option>
+          <option value="transport">🚗 Di chuyển</option>
+          <option value="shopping">🛍️ Mua sắm</option>
+          <option value="entertainment">🎮 Giải trí</option>
+          <option value="health">💊 Sức khỏe</option>
+          <option value="education">📚 Học tập</option>
+          <option value="bills">🧾 Hóa đơn</option>
           <option value="other">📦 Khác</option>
         </select>
 
