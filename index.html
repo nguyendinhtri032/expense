@@ -89,6 +89,13 @@
         <canvas id="expense-chart"></canvas>
       </div>
     </section>
+    <section style="padding:0 16px 16px;">
+      <h2 style="margin-bottom:12px;">Chi tiêu theo danh mục</h2>
+      <div class="pie-chart-wrapper">
+        <canvas id="pie-chart"></canvas>
+      </div>
+      <div id="pie-legend" class="pie-legend"></div>
+    </section>
   </main>
 
   <!-- FAB -->
@@ -216,10 +223,27 @@
         <button class="modal-close" data-close="modal-settings">✕</button>
       </div>
       <div class="settings-list">
+        <button id="btn-manage-categories" class="settings-btn">🏷️ Quản lý danh mục</button>
         <button id="btn-export" class="settings-btn">📤 Xuất dữ liệu (JSON)</button>
         <button id="btn-import" class="settings-btn">📥 Nhập dữ liệu (JSON)</button>
         <input type="file" id="import-file" accept=".json" style="display:none;">
         <p class="settings-note">⚠️ Nhập dữ liệu sẽ thay thế toàn bộ dữ liệu hiện tại</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Management Modal -->
+  <div id="modal-categories" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Quản lý danh mục</h3>
+        <button class="modal-close" data-close="modal-categories">✕</button>
+      </div>
+      <div id="category-list" class="category-list"></div>
+      <div class="cat-add-row">
+        <input type="text" id="cat-add-icon" placeholder="📌" maxlength="2" class="cat-add-icon-input">
+        <input type="text" id="cat-add-name" placeholder="Tên danh mục" class="cat-add-name-input">
+        <button type="button" id="btn-cat-add" class="btn-cat-add">Thêm</button>
       </div>
     </div>
   </div>

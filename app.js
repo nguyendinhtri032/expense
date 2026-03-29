@@ -918,6 +918,85 @@ document.getElementById('import-file').addEventListener('change', async e => {
 });
 
 // ============================================================
+// Category Management (in Settings)
+// ============================================================
+const $modalCategories = document.getElementById('modal-categories');
+const $categoryList = document.getElementById('category-list');
+
+document.getElementById('btn-manage-categories').addEventListener('click', () => {
+  closeModal($modalSettings);
+  renderCategoryList();
+  openModal($modalCategories);
+});
+
+function renderCategoryList() {
+  $categoryList.innerHTML = '';
+  categoriesList.forEach(cat => {
+    const item = document.createElement('div');
+    item.className = 'cat-item';
+    item.innerHTML = `
+      <input type="text" class="cat-item-icon-input" value="${cat.icon}" maxlength="2" data-id="${cat.id}" data-field="icon">
+      <div class="cat-item-name">
+        <input type="text" value="${escapeHtml(cat.name)}" data-id="${cat.id}" data-field="name" maxlength="30">
+      </div>
+      <div class="cat-item-actions">
+        <button class="cat-item-btn delete" data-id="${cat.id}" title="Xóa">✕</button>
+      </div>
+    `;
+    $categoryList.appendChild(item);
+  });
+
+  // Inline edit: save on blur
+  $categoryList.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('change', async () => {
+      const id = inp.dataset.id;
+      const field = inp.dataset.field;
+      const val = inp.value.trim();
+      if (!val) { inp.value = categoriesList.find(c => c.id === id)?.[field] || ''; return; }
+      const cat = categoriesList.find(c => c.id === id);
+      if (!cat) return;
+      cat[field] = val;
+      await idbReq(tx('categories', 'readwrite').put({ ...cat }));
+      await loadCategories();
+      toast('Đã cập nhật danh mục');
+    });
+  });
+
+  // Delete
+  $categoryList.querySelectorAll('.cat-item-btn.delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const cat = categoriesList.find(c => c.id === id);
+      if (!confirm(`Xóa danh mục "${cat.icon} ${cat.name}"?`)) return;
+      await deleteCategory(id);
+      renderCategoryList();
+      toast('Đã xóa danh mục');
+      refresh();
+    });
+  });
+}
+
+// Add new category from management modal
+document.getElementById('btn-cat-add').addEventListener('click', async () => {
+  const icon = document.getElementById('cat-add-icon').value.trim();
+  const name = document.getElementById('cat-add-name').value.trim();
+  if (!icon || !name) { toast('Vui lòng nhập icon và tên'); return; }
+
+  const id = name.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+  if (CATEGORIES[id]) { toast('Danh mục này đã tồn tại'); return; }
+
+  await addCategory(id, icon, name);
+  document.getElementById('cat-add-icon').value = '';
+  document.getElementById('cat-add-name').value = '';
+  renderCategoryList();
+  toast('Đã thêm danh mục mới');
+});
+
+// ============================================================
 // Tab switching
 // ============================================================
 const $tabBar = document.getElementById('tab-bar');
@@ -1120,7 +1199,107 @@ async function renderChart() {
     ctx.lineJoin = 'round';
     ctx.stroke();
   }
+
+  // Also render pie chart
+  renderPieChart(expenses);
 }
+
+// ============================================================
+// Pie Chart (spending by category)
+// ============================================================
+const PIE_COLORS = [
+  '#f4a0b9', '#3b82f6', '#f59e0b', '#10b981', '#8b5cf6',
+  '#ef4444', '#06b6d4', '#84cc16', '#ec4899', '#f97316',
+  '#6366f1', '#14b8a6', '#e11d48', '#a855f7', '#0ea5e9'
+];
+
+function renderPieChart(expenses) {
+  const canvas = document.getElementById('pie-chart');
+  const ctx = canvas.getContext('2d');
+
+  const dpr = window.devicePixelRatio || 1;
+  const size = 220;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, size, size);
+
+  // Aggregate by category
+  const catSpend = {};
+  expenses.forEach(e => {
+    catSpend[e.category] = (catSpend[e.category] || 0) + e.amount;
+  });
+
+  const entries = Object.entries(catSpend)
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  const $legend = document.getElementById('pie-legend');
+
+  if (entries.length === 0) {
+    // Draw empty state
+    const cx = size / 2, cy = size / 2, r = 85;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = '#e5e7eb';
+    ctx.fill();
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '13px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Chưa có dữ liệu', cx, cy);
+    $legend.innerHTML = '';
+    return;
+  }
+
+  const total = entries.reduce((s, [, v]) => s + v, 0);
+  const cx = size / 2, cy = size / 2, r = 85, innerR = 50;
+
+  let startAngle = -Math.PI / 2;
+
+  entries.forEach(([cat, amount], i) => {
+    const slice = (amount / total) * Math.PI * 2;
+    const color = PIE_COLORS[i % PIE_COLORS.length];
+
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(startAngle) * innerR, cy + Math.sin(startAngle) * innerR);
+    ctx.arc(cx, cy, r, startAngle, startAngle + slice);
+    ctx.arc(cx, cy, innerR, startAngle + slice, startAngle, true);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    // White gap between slices
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    startAngle += slice;
+  });
+
+  // Center text: total
+  ctx.fillStyle = var_gray900();
+  ctx.font = 'bold 14px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(formatMoney(total), cx, cy);
+
+  // Legend
+  $legend.innerHTML = entries.map(([cat, amount], i) => {
+    const pct = Math.round((amount / total) * 100);
+    const color = PIE_COLORS[i % PIE_COLORS.length];
+    const label = CATEGORIES[cat] || cat;
+    return `<div class="pie-legend-item">
+      <span class="pie-legend-dot" style="background:${color}"></span>
+      <span>${label}</span>
+      <span class="pie-legend-pct">${pct}% · ${formatMoney(amount)}</span>
+    </div>`;
+  }).join('');
+}
+
+function var_gray900() { return '#111827'; }
 
 // ============================================================
 // Service Worker — auto-update system
