@@ -732,10 +732,47 @@ document.getElementById('import-file').addEventListener('change', async e => {
 });
 
 // ============================================================
-// Service Worker
+// Service Worker — auto-update system
 // ============================================================
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration failed:', err));
+  // Prevent infinite reload loop
+  const RELOAD_KEY = 'sw_reload_ts';
+
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    console.log('[App] SW registered');
+
+    // Check for updates periodically (every 30 min)
+    setInterval(() => reg.update(), 30 * 60 * 1000);
+  }).catch(err => console.log('[App] SW registration failed:', err));
+
+  // Detect when a new SW takes control
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    const lastReload = parseInt(sessionStorage.getItem(RELOAD_KEY) || '0', 10);
+    const now = Date.now();
+
+    // Prevent reload loop: ignore if reloaded within last 5 seconds
+    if (now - lastReload < 5000) {
+      console.log('[App] Skipping reload — too recent');
+      return;
+    }
+
+    // Ask new SW for its version
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage('GET_VERSION');
+    }
+
+    // Show toast and reload
+    sessionStorage.setItem(RELOAD_KEY, String(now));
+    toast('App đã cập nhật — đang tải lại...');
+    setTimeout(() => location.reload(), 1500);
+  });
+
+  // Listen for version info from SW
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data && e.data.type === 'VERSION') {
+      console.log('[App] Running version:', e.data.version);
+    }
+  });
 }
 
 // ============================================================
