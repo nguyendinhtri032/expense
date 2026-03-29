@@ -266,6 +266,9 @@ async function refresh() {
 
   // Expense list
   renderExpenses(expenses);
+
+  // Re-render chart if visible
+  if ($chartPage.style.display !== 'none') renderChart();
 }
 
 function renderBudgets(budgets, expenses) {
@@ -730,6 +733,211 @@ document.getElementById('import-file').addEventListener('change', async e => {
   }
   e.target.value = '';
 });
+
+// ============================================================
+// Tab switching
+// ============================================================
+const $tabBar = document.getElementById('tab-bar');
+const $main = document.getElementById('main');
+const $chartPage = document.getElementById('chart-page');
+
+$tabBar.addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  const tab = btn.dataset.tab;
+
+  $tabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  if (tab === 'chart') {
+    $main.style.display = 'none';
+    $chartPage.style.display = 'block';
+    renderChart();
+  } else {
+    $main.style.display = 'block';
+    $chartPage.style.display = 'none';
+  }
+});
+
+// ============================================================
+// Chart
+// ============================================================
+async function renderChart() {
+  const canvas = document.getElementById('expense-chart');
+  const ctx = canvas.getContext('2d');
+
+  // Hi-DPI support
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const W = rect.width - 16; // padding
+  const H = 240;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+
+  // Data
+  const expenses = await getExpensesByMonth(selectedMonth);
+  const budgets = await getBudgetsByMonth(selectedMonth);
+  const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);
+
+  // Days in month
+  const [y, m] = selectedMonth.split('-').map(Number);
+  const daysInMonth = new Date(y, m, 0).getDate();
+
+  // Spending per day
+  const dailySpend = new Array(daysInMonth).fill(0);
+  expenses.forEach(exp => {
+    const day = parseInt(exp.date.split('-')[2], 10);
+    if (day >= 1 && day <= daysInMonth) dailySpend[day - 1] += exp.amount;
+  });
+
+  // Cumulative spending
+  const cumSpend = [];
+  let cumSum = 0;
+  for (let i = 0; i < daysInMonth; i++) {
+    cumSum += dailySpend[i];
+    cumSpend.push(cumSum);
+  }
+
+  // Remaining budget
+  const remaining = [];
+  let rem = totalBudget;
+  for (let i = 0; i < daysInMonth; i++) {
+    rem -= dailySpend[i];
+    remaining.push(Math.max(rem, 0));
+  }
+
+  // Chart subtitle
+  document.getElementById('chart-subtitle').textContent =
+    `Tháng ${m}/${y} — Ngân sách: ${totalBudget > 0 ? formatMoney(totalBudget) : 'chưa đặt'}`;
+
+  // Legend
+  document.getElementById('chart-legend').innerHTML = `
+    <div class="chart-legend-item">
+      <span class="chart-legend-dot" style="background:var(--blue);border:2px dashed var(--blue-dark);"></span>
+      Chi tiêu tích lũy
+    </div>
+    <div class="chart-legend-item">
+      <span class="chart-legend-dot" style="background:#3b82f6;"></span>
+      Ngân sách còn lại
+    </div>
+  `;
+
+  // Max value for Y axis
+  const maxVal = Math.max(...cumSpend, totalBudget, 100000);
+
+  // Chart margins
+  const mL = 48, mR = 12, mT = 12, mB = 28;
+  const cW = W - mL - mR;
+  const cH = H - mT - mB;
+
+  // Clear
+  ctx.clearRect(0, 0, W, H);
+
+  // Helpers
+  function xPos(day) { return mL + (day / (daysInMonth - 1)) * cW; }
+  function yPos(val) { return mT + cH - (val / maxVal) * cH; }
+
+  // Grid lines + Y labels
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.lineWidth = 0.5;
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.textAlign = 'right';
+
+  const gridSteps = 5;
+  for (let i = 0; i <= gridSteps; i++) {
+    const val = (maxVal / gridSteps) * i;
+    const py = yPos(val);
+    ctx.beginPath();
+    ctx.moveTo(mL, py);
+    ctx.lineTo(W - mR, py);
+    ctx.stroke();
+
+    let label;
+    if (val >= 1000000) label = (val / 1000000).toFixed(val % 1000000 === 0 ? 0 : 1) + 'M';
+    else label = Math.round(val / 1000) + 'K';
+    ctx.fillText(label, mL - 6, py + 4);
+  }
+
+  // X labels (days) — calculate step based on available width
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#9ca3af';
+  const labelWidth = 24; // approx width per label in px
+  const maxLabels = Math.floor(cW / labelWidth);
+  const dayStep = Math.max(1, Math.ceil(daysInMonth / maxLabels));
+  for (let d = 0; d < daysInMonth; d++) {
+    const day = d + 1;
+    const isFirst = day === 1;
+    const isLast = day === daysInMonth;
+    const isStep = day % dayStep === 0;
+    // Skip step label if too close to the last day
+    if (isStep && !isLast && (daysInMonth - day) < dayStep) continue;
+    if (isFirst || isLast || isStep) {
+      ctx.fillText(day, xPos(d), H - 6);
+    }
+  }
+
+  // === Draw cumulative spending area (pink, dashed border) ===
+  // Fill area
+  ctx.beginPath();
+  ctx.moveTo(xPos(0), yPos(0));
+  for (let d = 0; d < daysInMonth; d++) {
+    ctx.lineTo(xPos(d), yPos(cumSpend[d]));
+  }
+  ctx.lineTo(xPos(daysInMonth - 1), yPos(0));
+  ctx.closePath();
+
+  const grad = ctx.createLinearGradient(0, mT, 0, mT + cH);
+  grad.addColorStop(0, 'rgba(244,160,185,0.5)');
+  grad.addColorStop(1, 'rgba(244,160,185,0.05)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Dashed border line
+  ctx.beginPath();
+  for (let d = 0; d < daysInMonth; d++) {
+    if (d === 0) ctx.moveTo(xPos(d), yPos(cumSpend[d]));
+    else ctx.lineTo(xPos(d), yPos(cumSpend[d]));
+  }
+  ctx.strokeStyle = '#e8809f';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([6, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // === Draw remaining budget line (blue, solid) ===
+  if (totalBudget > 0) {
+    ctx.beginPath();
+    // Fill area under remaining
+    ctx.moveTo(xPos(0), yPos(0));
+    ctx.lineTo(xPos(0), yPos(totalBudget));
+    for (let d = 0; d < daysInMonth; d++) {
+      ctx.lineTo(xPos(d), yPos(remaining[d]));
+    }
+    ctx.lineTo(xPos(daysInMonth - 1), yPos(0));
+    ctx.closePath();
+
+    const gradBlue = ctx.createLinearGradient(0, mT, 0, mT + cH);
+    gradBlue.addColorStop(0, 'rgba(59,130,246,0.15)');
+    gradBlue.addColorStop(1, 'rgba(59,130,246,0.02)');
+    ctx.fillStyle = gradBlue;
+    ctx.fill();
+
+    // Solid line
+    ctx.beginPath();
+    ctx.moveTo(xPos(0), yPos(totalBudget));
+    for (let d = 0; d < daysInMonth; d++) {
+      ctx.lineTo(xPos(d), yPos(remaining[d]));
+    }
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+}
 
 // ============================================================
 // Service Worker — auto-update system

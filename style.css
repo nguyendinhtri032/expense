@@ -132,9 +132,42 @@ body {
   color: #b91c1c;
 }
 
+/* Tab bar */
+#tab-bar {
+  display: flex;
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.tab-btn.active {
+  color: var(--blue-dark);
+  border-bottom-color: var(--blue-dark);
+}
+
+.tab-btn:active {
+  background: var(--gray-50);
+}
+
 /* Main */
 #main {
   padding: 16px;
+  padding-bottom: 100px;
+}
+
+#chart-page {
   padding-bottom: 100px;
 }
 
@@ -648,6 +681,41 @@ input[type="file"] {
   align-items: center;
   justify-content: center;
   z-index: 301;
+}
+
+/* Chart */
+.chart-container {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 8px 12px;
+  overflow: hidden;
+}
+
+.chart-container canvas {
+  width: 100%;
+  height: 240px;
+  display: block;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--gray-700);
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-legend-dot {
+  width: 12px;
+  height: 4px;
+  border-radius: 2px;
 }
 
 /* Toast */

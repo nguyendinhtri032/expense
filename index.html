@@ -41,6 +41,12 @@
     </div>
   </header>
 
+  <!-- Tab bar -->
+  <div id="tab-bar">
+    <button class="tab-btn active" data-tab="main">Chi tiêu</button>
+    <button class="tab-btn" data-tab="chart">Biểu đồ</button>
+  </div>
+
   <!-- Main -->
   <main id="main">
     <!-- Budget Section -->
@@ -58,6 +64,18 @@
       <div id="expense-list"></div>
       <div id="expense-empty" class="empty-state" style="display:none;">
         Chưa có chi tiêu nào trong tháng này
+      </div>
+    </section>
+  </main>
+
+  <!-- Chart page -->
+  <main id="chart-page" style="display:none;">
+    <section style="padding:16px;">
+      <h2 style="margin-bottom:4px;">Biểu đồ chi tiêu</h2>
+      <p id="chart-subtitle" style="font-size:12px;color:var(--gray-500);margin-bottom:16px;"></p>
+      <div id="chart-legend" class="chart-legend"></div>
+      <div class="chart-container">
+        <canvas id="expense-chart"></canvas>
       </div>
     </section>
   </main>
