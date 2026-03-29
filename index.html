@@ -122,32 +122,42 @@
       <form id="form-expense" style="display:none;">
         <input type="hidden" id="expense-id">
 
-        <label for="expense-title">Tiêu đề</label>
-        <input type="text" id="expense-title" required placeholder="VD: Cà phê sáng">
+        <div class="floating-field">
+          <input type="text" id="expense-title" required placeholder=" ">
+          <label for="expense-title">Tiêu đề</label>
+        </div>
 
-        <label for="expense-amount">Số tiền (đ)</label>
-        <input type="text" id="expense-amount" required placeholder="50,000" inputmode="numeric" class="money-input">
+        <div class="floating-field">
+          <input type="text" id="expense-amount" required placeholder=" " inputmode="numeric" class="money-input">
+          <label for="expense-amount">Số tiền (đ)</label>
+        </div>
 
-        <label for="expense-category">Danh mục</label>
-        <select id="expense-category" required>
-          <option value="food">🍜 Ăn uống</option>
-          <option value="transport">🚗 Di chuyển</option>
-          <option value="shopping">🛍️ Mua sắm</option>
-          <option value="entertainment">🎮 Giải trí</option>
-          <option value="health">💊 Sức khỏe</option>
-          <option value="education">📚 Học tập</option>
-          <option value="bills">🧾 Hóa đơn</option>
-          <option value="other">📦 Khác</option>
-        </select>
+        <div class="floating-field">
+          <select id="expense-category" required>
+            <option value="food">🍜 Ăn uống</option>
+            <option value="transport">🚗 Di chuyển</option>
+            <option value="shopping">🛍️ Mua sắm</option>
+            <option value="entertainment">🎮 Giải trí</option>
+            <option value="health">💊 Sức khỏe</option>
+            <option value="education">📚 Học tập</option>
+            <option value="bills">🧾 Hóa đơn</option>
+            <option value="other">📦 Khác</option>
+          </select>
+          <label for="expense-category">Danh mục</label>
+        </div>
 
-        <label for="expense-date">Ngày</label>
-        <input type="date" id="expense-date" required>
+        <div class="floating-field">
+          <input type="datetime-local" id="expense-date" required>
+          <label for="expense-date">Ngày giờ</label>
+        </div>
 
         <!-- Budget info -->
         <div id="expense-budget-info" class="budget-info" style="display:none;"></div>
 
-        <label>Ảnh (tối đa 5)</label>
-        <input type="file" id="expense-images" accept="image/*" multiple>
+        <div class="floating-field">
+          <input type="file" id="expense-images" accept="image/*" multiple>
+          <label>Ảnh (tối đa 5)</label>
+        </div>
         <div id="expense-image-preview" class="image-preview"></div>
 
         <div class="form-actions">
@@ -166,20 +176,24 @@
         <button class="modal-close" data-close="modal-budget">✕</button>
       </div>
       <form id="form-budget">
-        <label for="budget-category">Danh mục</label>
-        <select id="budget-category" required>
-          <option value="food">🍜 Ăn uống</option>
-          <option value="transport">🚗 Di chuyển</option>
-          <option value="shopping">🛍️ Mua sắm</option>
-          <option value="entertainment">🎮 Giải trí</option>
-          <option value="health">💊 Sức khỏe</option>
-          <option value="education">📚 Học tập</option>
-          <option value="bills">🧾 Hóa đơn</option>
-          <option value="other">📦 Khác</option>
-        </select>
+        <div class="floating-field">
+          <select id="budget-category" required>
+            <option value="food">🍜 Ăn uống</option>
+            <option value="transport">🚗 Di chuyển</option>
+            <option value="shopping">🛍️ Mua sắm</option>
+            <option value="entertainment">🎮 Giải trí</option>
+            <option value="health">💊 Sức khỏe</option>
+            <option value="education">📚 Học tập</option>
+            <option value="bills">🧾 Hóa đơn</option>
+            <option value="other">📦 Khác</option>
+          </select>
+          <label for="budget-category">Danh mục</label>
+        </div>
 
-        <label for="budget-amount">Số tiền (đ)</label>
-        <input type="text" id="budget-amount" required placeholder="1,000,000" inputmode="numeric" class="money-input">
+        <div class="floating-field">
+          <input type="text" id="budget-amount" required placeholder=" " inputmode="numeric" class="money-input">
+          <label for="budget-amount">Số tiền (đ)</label>
+        </div>
 
         <div class="form-actions">
           <button type="button" id="btn-delete-budget" class="btn-danger" style="display:none;">Xóa</button>

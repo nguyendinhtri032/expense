@@ -472,23 +472,34 @@ h2 {
 }
 
 /* Forms */
-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--gray-700);
-  margin-bottom: 6px;
-  margin-top: 14px;
+.floating-field {
+  position: relative;
+  margin-top: 18px;
 }
 
-label:first-of-type {
+.floating-field:first-child {
   margin-top: 0;
 }
 
-input[type="text"],
-input[type="number"],
-input[type="date"],
-select {
+.floating-field label {
+  position: absolute;
+  top: -8px;
+  left: 10px;
+  background: white;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-500);
+  z-index: 1;
+  margin: 0;
+  pointer-events: none;
+}
+
+.floating-field input[type="text"],
+.floating-field input[type="number"],
+.floating-field input[type="date"],
+.floating-field input[type="datetime-local"],
+.floating-field select {
   width: 100%;
   padding: 12px;
   border: 1px solid var(--gray-300);
@@ -499,20 +510,31 @@ select {
   -webkit-appearance: none;
 }
 
+.floating-field input[type="file"] {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: 10px;
+  font-size: 14px;
+  background: white;
+  -webkit-appearance: none;
+}
+
 .money-input {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-input:focus, select:focus {
+.floating-field input:focus,
+.floating-field select:focus {
   outline: none;
   border-color: var(--blue-dark);
   box-shadow: 0 0 0 3px rgba(244,160,185,0.3);
 }
 
-input[type="file"] {
-  font-size: 14px;
-  margin-top: 4px;
+.floating-field input:focus + label,
+.floating-field select:focus + label {
+  color: var(--blue-dark);
 }
 
 .form-actions {
@@ -574,8 +596,8 @@ input[type="file"] {
 }
 
 .budget-info .no-budget {
-  color: var(--gray-500);
-  font-style: italic;
+  color: var(--red);
+  font-weight: 600;
 }
 
 /* Image preview */

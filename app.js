@@ -67,12 +67,16 @@ function toISO(date) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${y}-${m}-${day}T${hh}:${mm}`;
 }
 
 function toVNDate(isoStr) {
-  const [y, m, d] = isoStr.split('-');
-  return `${d}/${m}/${y}`;
+  const datePart = isoStr.substring(0, 10);
+  const [y, m, d] = datePart.split('-');
+  const timePart = isoStr.length > 10 ? isoStr.substring(11, 16) : '';
+  return timePart ? `${d}/${m}/${y} ${timePart}` : `${d}/${m}/${y}`;
 }
 
 function getMonth(isoDate) {
@@ -817,7 +821,7 @@ async function renderChart() {
   // Spending per day
   const dailySpend = new Array(daysInMonth).fill(0);
   expenses.forEach(exp => {
-    const day = parseInt(exp.date.split('-')[2], 10);
+    const day = parseInt(exp.date.substring(8, 10), 10);
     if (day >= 1 && day <= daysInMonth) dailySpend[day - 1] += exp.amount;
   });
 
