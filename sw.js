@@ -1,4 +1,4 @@
-const APP_VERSION = 'v1.0.8';
+const APP_VERSION = 'v1.0.9';
 const CACHE_NAME = 'expense-' + APP_VERSION;
 const ASSETS = [
   './',

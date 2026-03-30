@@ -347,6 +347,10 @@ async function refresh() {
     $totalRemaining.classList.remove('over-budget');
   }
 
+  // Section totals
+  document.getElementById('budget-total').textContent = budgets.length > 0 ? `(${budgets.length})` : '';
+  document.getElementById('expense-total').textContent = expenses.length > 0 ? `(${expenses.length})` : '';
+
   // Budget list
   renderBudgets(budgets, expenses);
 
