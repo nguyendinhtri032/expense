@@ -1103,9 +1103,9 @@ async function renderChart() {
   function yPos(val) { return mT + cH - (val / maxVal) * cH; }
 
   // Grid lines + Y labels
-  ctx.strokeStyle = '#e5e7eb';
+  ctx.strokeStyle = var_gray200();
   ctx.lineWidth = 0.5;
-  ctx.fillStyle = '#9ca3af';
+  ctx.fillStyle = var_gray400();
   ctx.font = '11px -apple-system, sans-serif';
   ctx.textAlign = 'right';
 
@@ -1126,7 +1126,7 @@ async function renderChart() {
 
   // X labels (days) — calculate step based on available width
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#9ca3af';
+  ctx.fillStyle = var_gray400();
   const labelWidth = 24; // approx width per label in px
   const maxLabels = Math.floor(cW / labelWidth);
   const dayStep = Math.max(1, Math.ceil(daysInMonth / maxLabels));
@@ -1243,9 +1243,9 @@ function renderPieChart(expenses) {
     const cx = size / 2, cy = size / 2, r = 85;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = '#e5e7eb';
+    ctx.fillStyle = var_gray200();
     ctx.fill();
-    ctx.fillStyle = '#9ca3af';
+    ctx.fillStyle = var_gray400();
     ctx.font = '13px -apple-system, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -1299,7 +1299,9 @@ function renderPieChart(expenses) {
   }).join('');
 }
 
-function var_gray900() { return '#111827'; }
+function var_gray200() { return getComputedStyle(document.documentElement).getPropertyValue('--gray-200').trim() || '#e5e7eb'; }
+function var_gray400() { return getComputedStyle(document.documentElement).getPropertyValue('--gray-400').trim() || '#9ca3af'; }
+function var_gray900() { return getComputedStyle(document.documentElement).getPropertyValue('--gray-900').trim() || '#111827'; }
 
 // ============================================================
 // Service Worker — auto-update system
