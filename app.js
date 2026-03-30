@@ -1350,7 +1350,11 @@ if ('serviceWorker' in navigator) {
 // ============================================================
 // Reload button (for PWA standalone mode)
 // ============================================================
-document.getElementById('btn-reload').addEventListener('click', () => location.reload());
+document.getElementById('btn-reload').addEventListener('click', () => {
+  const icon = document.querySelector('#btn-reload .header-icon');
+  icon.classList.add('spin');
+  icon.addEventListener('transitionend', () => location.reload(), { once: true });
+});
 
 // ============================================================
 // Init
